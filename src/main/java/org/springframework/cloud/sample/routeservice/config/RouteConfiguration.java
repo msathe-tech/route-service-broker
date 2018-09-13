@@ -16,6 +16,8 @@
 
 package org.springframework.cloud.sample.routeservice.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.cloud.gateway.config.GatewayAutoConfiguration;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
@@ -30,6 +32,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.server.ServerWebExchange;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 import java.util.function.Predicate;
 
 import static org.springframework.cloud.gateway.handler.predicate.CloudFoundryRouteServiceRoutePredicateFactory.X_CF_FORWARDED_URL;
@@ -37,6 +42,12 @@ import static org.springframework.cloud.gateway.handler.predicate.CloudFoundryRo
 @Configuration
 @AutoConfigureBefore(GatewayAutoConfiguration.class)
 public class RouteConfiguration {
+
+	public static String currentServiceInstanceID;
+
+	public static Map<String, RedisRateLimiter> myRateLimitMap = new HashMap<String, RedisRateLimiter>();
+
+	private final Logger log = LoggerFactory.getLogger(RouteConfiguration.class);
 
 	@Bean
 	public KeyResolver keyResolver() {
@@ -54,9 +65,29 @@ public class RouteConfiguration {
 	}
 
 	@Bean
-	public RedisRateLimiter redisRateLimiter() {
-		return new RedisRateLimiter(5, 5);
+	/*public RedisRateLimiter redisRateLimiter() {
+		return new RedisRateLimiter(1, 1);
 	}
+	*/
+	public RedisRateLimiter redisRateLimiter() {
+		log.info(">>>>>						>>>>>");
+		log.info("currentServiceInstanceID={}", currentServiceInstanceID);
+		RedisRateLimiter rrl = (RedisRateLimiter) myRateLimitMap.get(currentServiceInstanceID);
+		if (rrl == null) {
+			rrl = new RedisRateLimiter
+					(giveMeRandom().nextInt(2) + 1,
+							giveMeRandom().nextInt(2) + 1);
+			myRateLimitMap.put
+					(currentServiceInstanceID, rrl);
+		}
+		log.info("rrl = {},{}", rrl.getReplenishRateHeader(), rrl.getBurstCapacityHeader());
+		log.info(">>>>>						>>>>>");
+		return rrl;
+
+	}
+
+	@Bean
+	public Random giveMeRandom() { return new Random(); }
 
 	@Bean
 	public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {

@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
+import org.springframework.cloud.sample.routeservice.config.RouteConfiguration;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
@@ -43,6 +44,9 @@ public class LoggingGatewayFilterFactory extends AbstractGatewayFilterFactory<Ob
 			ServerHttpRequest request = exchange.getRequest();
 
 			String serviceInstanceId = getServiceInstanceId(exchange);
+
+			//Use serviceInstanceId here to create or retrieve RedisRateLimitter
+			RouteConfiguration.currentServiceInstanceID = new String("" + serviceInstanceId);
 
 			URI forwardedUrl = getForwardedUrl(request);
 
